@@ -6,56 +6,88 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @State private var viewModel = CounterViewModel()
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        VStack(spacing: 30) {
+            Text("Counter")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .accessibilityIdentifier("counter-title")
+            
+            Text("\(viewModel.count)")
+                .font(.system(size: 72, weight: .light, design: .monospaced))
+                .foregroundColor(colorForCount())
+                .accessibilityIdentifier("counter-value")
+                .accessibilityLabel("\(viewModel.count)")
+            
+            HStack {
+                Button(action: { viewModel.decrement() }) {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(viewModel.canDecrement ? .blue : .gray)
                 }
-                .onDelete(perform: deleteItems)
+                .disabled(!viewModel.canDecrement)
+                .accessibilityIdentifier("decrement-button")
+                .accessibilityLabel("Decrement button")
+                
+                Spacer()
+                
+                Button(action: { viewModel.increment() }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(viewModel.canIncrement ? .blue : .gray)
+                }
+                .disabled(!viewModel.canIncrement)
+                .accessibilityIdentifier("increment-button")
+                .accessibilityLabel("Increment button")
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+            .padding([.horizontal], 75)
+            
+            Button(action: { viewModel.reset() }) {
+                Text("Reset")
+                    .font(.headline)
+                    .foregroundStyle(Color.orange)
+                    .accessibilityIdentifier("reset-button")
+                    .accessibilityLabel("Reset button")
+                    .padding()
+            }
+            
+            VStack(spacing: 0) {
+                if viewModel.isAtMaximum {
+                    Text("Maximum value reached")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.red)
+                        .accessibilityIdentifier("max-value-label")
                 }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+                 
+                if viewModel.isAtMinimum {
+                    Text("Minimum value reached")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.red)
+                        .accessibilityIdentifier("min-value-label")
                 }
             }
-        } detail: {
-            Text("Select an item")
         }
+        .padding()
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+    
+    private func colorForCount() -> Color {
+        switch viewModel.count {
+        case viewModel.minCount..<viewModel.minCount + 5:
+            return .red
+        case viewModel.maxCount - 5..<viewModel.maxCount:
+            return .green
+        default:
+            return .primary
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
